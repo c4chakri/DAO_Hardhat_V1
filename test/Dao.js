@@ -1,6 +1,7 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { ethers } = require("hardhat");
-const { expect } = require("chai")
+const { expect } = require("chai");
+
 describe("DAO", function () {
     async function DeployGovernanceTokenFixture() {
         const [councilAddr, user1] = await ethers.getSigners();
@@ -30,7 +31,7 @@ describe("DAO", function () {
         const { gtContract } = await loadFixture(DeployGovernanceTokenFixture);
 
         const [addr1, addr2, addr3, addr4] = await ethers.getSigners();
-        const governanceTokenAddress = gtContract.getAddress(); // Use `.address`
+        const governanceTokenAddress = await gtContract.getAddress(); // Use `.address`
         const minimumParticipationPercentage = "50";  // String format
         const supportThresholdPercentage = "40";  // String format
         const minimumDurationForProposal = "86400";  // String format (seconds)
@@ -55,17 +56,106 @@ describe("DAO", function () {
             isMultiSignDAO
         );
 
-        console.log("DAO Address:", await daoContract.getAddress());
-        console.log("balance", await gtContract.balanceOf(addr1.address));
-        console.log("min------", await daoContract.minimumParticipationPercentage());
-
 
 
         return { daoContract, addr1, addr2, addr3, addr4 };
     }
+    async function createMintAction(governanceTokenAddress, to, amount) {
+        // Define the ABI for the mint function
+        const abi = [
+            "function mintSupply(address to, uint256 _amount)"
+        ];
+
+        // Create an interface for encoding the function call
+        const iface = new ethers.Interface(abi);
+
+        // Encode the function call
+        const mintSupplyEncoded = iface.encodeFunctionData("mintSupply", [to, amount.toString()]);
+
+        // Prepare the action array
+        const actionMintSupply = [
+            governanceTokenAddress, // Address of the contract
+            0, // Value in wei to send (usually 0 for function calls)
+            mintSupplyEncoded // Encoded function data
+        ];
+
+        // Log and return the result as an array
+
+        return [actionMintSupply];
+    }
+    async function createBurnAction(governanceTokenAddress, from, amount) {
+        // Define the ABI for the burn function
+        const abi = [
+            "function burnSupply(address from, uint256 _amount)"
+        ];
+    
+        // Create an interface for encoding the function call
+        const iface = new ethers.Interface(abi);
+    
+        // Encode the function call
+        const burnSupplyEncoded = iface.encodeFunctionData("burnSupply", [from, amount.toString()]);
+    
+        // Prepare the action array
+        const actionBurnSupply = [
+            governanceTokenAddress, // Address of the contract
+            0, // Value in wei to send (usually 0 for function calls)
+            burnSupplyEncoded // Encoded function data
+        ];
+    
+        // Log and return the result as an array
+        return [actionBurnSupply];
+    }
+    async function createTransferAction(governanceTokenAddress, recipient, amount) {
+        // Define the ABI for the transfer function
+        const abi = [
+            "function transfer(address recipient, uint256 amount) returns (bool)"
+        ];
+    
+        // Create an interface for encoding the function call
+        const iface = new ethers.Interface(abi);
+    
+        // Encode the function call
+        const transferEncoded = iface.encodeFunctionData("transfer", [recipient, amount.toString()]);
+    
+        // Prepare the action array
+        const actionTransfer = [
+            governanceTokenAddress, // Address of the contract
+            0, // Value in wei to send (usually 0 for function calls)
+            transferEncoded // Encoded function data
+        ];
+    
+        // Log and return the result as an array
+        return [actionTransfer];
+    }
+
+    async function createWithdrawAction(daoContractAddress, amount) {
+        // Define the ABI for the withdrawTokens function
+        const abi = [
+            "function withdrawTokens(uint256 _amount)"
+        ];
+    
+        // Create an interface for encoding the function call
+        const iface = new ethers.Interface(abi);
+    
+        // Encode the function call
+        const withdrawTokensEncoded = iface.encodeFunctionData("withdrawTokens", [amount.toString()]);
+    
+        // Prepare the action array
+        const actionWithdrawTokens = [
+            daoContractAddress, // Address of the DAO contract
+            0, // Value in wei to send (usually 0 for function calls)
+            withdrawTokensEncoded // Encoded function data
+        ];
+    
+        // Log and return the result as an array
+        return [actionWithdrawTokens];
+    }
+    
+    
+    
 
     describe("Deployment DAO", function () {
-        it("Should deploy the DAO contract", async function () {
+        it("Should returns the Governance contract data", async function () {
             const { gtContract } = await loadFixture(DeployGovernanceTokenFixture);
             const [addr1, addr2, addr3] = await ethers.getSigners();
 
@@ -73,113 +163,204 @@ describe("DAO", function () {
             const name = await gtContract.name();
             const symbol = await gtContract.symbol();
             const owner = await gtContract.owner();
-            const balance = await gtContract.balanceOf(addr1.address);
 
-            console.log("GovernanceToken Details:", { name, symbol, owner, balance: balance.toString() });
+            console.log("GovernanceToken Details:", { name, symbol, owner });
         });
 
-        it("should add members in Dao", async function () {
-            const { daoContract, addr3 } = await loadFixture(DeployDAOFixture)
+        it("should return DAO contract details", async function () {
+            const { daoContract } = await loadFixture(DeployDAOFixture);
+            const [addr1] = await ethers.getSigners();
+
+            // DAO Contract Details
+            const governanceTokenAddress = await daoContract.governanceTokenAddress();
+            const DaoCreator = await daoContract.DaoCreator();
+            const minimumParticipationPercentage = await daoContract.minimumParticipationPercentage();
+            const supportThresholdPercentage = await daoContract.supportThresholdPercentage();
+            const minimumDuration = await daoContract.minimumDuration();
+            const earlyExecution = await daoContract.earlyExecution();
+            const canVoteChange = await daoContract.canVoteChange();
+            const isMultiSignDAO = await daoContract.isMultiSignDAO();
+            const proposalId = await daoContract.proposalId();
+            const membersCount = await daoContract.membersCount();
+
+            console.log("DAO Contract Details:", {
+                governanceTokenAddress,
+                DaoCreator,
+                minimumParticipationPercentage: minimumParticipationPercentage.toString(),
+                supportThresholdPercentage: supportThresholdPercentage.toString(),
+                minimumDuration: minimumDuration.toString(),
+                earlyExecution,
+                canVoteChange,
+                isMultiSignDAO,
+                proposalId: proposalId.toString(),
+                membersCount: membersCount.toString(),
+            });
+        });
+
+
+        /**
+         * @dev This test case adds members in the DAO
+         * - It adds one member with a balance of 100 ether
+         * - It checks that the count of members has increased by one
+         */
+
+        it("should add members in DAO", async function () {
+            const { daoContract, addr3 } = await loadFixture(DeployDAOFixture);
 
             const daoMembers = [
                 [await addr3.getAddress(), ethers.parseEther("100")],
             ];
-            const preCount = await daoContract.membersCount()
-            await daoContract.addDAOMembers(daoMembers)
-            const afterCount = await daoContract.membersCount()
 
-            expect(preCount + BigInt(1)).to.equal(afterCount)
+            const preCount = await daoContract.membersCount();
+            await daoContract.addDAOMembers(daoMembers);
+            const afterCount = await daoContract.membersCount();
+
+            expect(preCount + BigInt(1)).to.equal(afterCount);
+        });
 
 
 
-        })
-        it("should create proposal", async function () {
+        /**
+                 * @dev This test case creates a proposal, votes, and executes it
+                 * - It tests the full flow of the DAO
+                 * - It first creates a proposal
+                 * - Then it votes on the proposal
+                 * - Finally, it executes the proposal
+                 * - It also prints the balances of the users and the DAO
+                 * - It prints the status of the proposal
+                 * @param {Promise<void>} func function to be tested
+                 */
+        it("should create , vote and execute the proposal ", async function () {
             const { daoContract } = await loadFixture(DeployDAOFixture);
-            const [user1, user2, user3] = await ethers.getSigners()
+            const [user1, user2, user3] = await ethers.getSigners();
 
-            //  check balance before minting to user3 address
-
-            const gt = await ethers.getContractFactory("GovernanceToken")
-            const gtContract = gt.attach(await daoContract.governanceTokenAddress())
+            // Check balance before minting to user3 address
+            const gt = await ethers.getContractFactory("GovernanceToken");
+            const gtContract = gt.attach(await daoContract.governanceTokenAddress());
             console.log("Balance of user3", await gtContract.balanceOf(user3.address));
 
+            // Set DAO address in Governance Token
+            await gtContract.setDAOAddress(daoContract.getAddress());
 
-            // set Daoaddrss in governane token
-
-            await gtContract.setDAOAddress(daoContract.getAddress())
-
-
-            var proposalId
             const title = "Increase Token Supply";
             const description = "This proposal aims to increase the token supply mint to 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
-            const startTime = Math.floor(Date.now() / 1000); // Start time 1 hour from now
+            const startTime = Math.floor(Date.now() / 1000);
             const duration = 604800; // Duration in seconds (1 week)
-            proposalId = await daoContract.proposalId()
+
+
+            const actions = await createMintAction(await gtContract.getAddress(), user3.address, 50)
+
+
+            // Creating proposal
+            let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
 
-            const actions = [["0x5FbDB2315678afecb367f032d93F642f64180aa3", 0, "0xe742806a0000000000000000000000003c44cdddb6a900fa2b585dd299e03d12fa4293bc0000000000000000000000000000000000000000000000000000000000000384"]]            // Call the createProposal function
-            // Creating proposal ie minting to "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"  900 tokens
-            const tx = await daoContract.createProposal(
-                title,
-                description,
-                startTime,
-                duration,
-                actions
-            );
+            const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
+            await tx.wait();
 
-
-
-            console.log("Tx.........", tx.hash);
-            proposalId = await daoContract.proposalId()
+            proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
 
-            const proposals = await daoContract.proposals(1)
+            const proposals = await daoContract.proposals(proposalId);
+            console.log("Proposal Address:", proposals[0]);
 
-            console.log(" Proposal 0", proposals[0]);
-            const prop1 = proposals[0]
-            const proposer = proposals[1]
-            const propIns = await ethers.getContractFactory("Proposal")
-            const proposalContract = propIns.attach(prop1)
-            await gtContract.grantRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472",prop1)
-            console.log("creatorAddress", await proposalContract.creatorAddress());
-            expect(await proposalContract.creatorAddress()).to.equal(proposer)
-            const afterCount = await daoContract.membersCount()
-            console.log(afterCount);
+            const proposalInstance = await ethers.getContractFactory("Proposal");
+            const proposalContract = proposalInstance.attach(proposals[0]);
 
+            // Grant roles
+            await gtContract.grantRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", proposals[0]);
 
-            //voting
-            await proposalContract.connect(user1).vote(2) // No vote 2
-            await proposalContract.connect(user2).vote(1) // Yes vote 1
+            expect(await proposalContract.creatorAddress()).to.equal(proposals[1]);
+
+            // Voting
+            await proposalContract.connect(user1).vote(2); // No vote
+            await proposalContract.connect(user2).vote(1); // Yes vote
+
             console.log("Yes votes", await proposalContract.yesVotes());
             console.log("No votes", await proposalContract.noVotes());
-            //Approving
-            console.log("is Approved ", await proposalContract.approved());
-            console.log("is executed ", await proposalContract.executed());
 
-            // execute
-            await proposalContract.connect(user1).executeProposal()
-            console.log("is executed ", await proposalContract.executed());
+            // Execute proposal
+            await proposalContract.connect(user1).executeProposal();
+            console.log("Executed:", await proposalContract.executed());
             console.log("Balance of user3", await gtContract.balanceOf(user3.address));
-            console.log("");
-            
-            console.log("role",
-                await gtContract.hasRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", user1.address)
-            )
-            console.log("role",
-                await gtContract.hasRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", daoContract.getAddress())
-            )
-            console.log("role",
-                await gtContract.hasRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", prop1)
-            )
-            console.log("proposal address",prop1);
-            
-        })
-        // it("sholud interact with proposal", async function () {
-        //     const { daoContract } = await loadFixture(DeployDAOFixture)
-        //     const proposalId = await daoContract.proposals(0)
-        //     console.log(" Proposal 0.......", proposalId);
+        });
 
-        // })
+        /**
+         * @dev This test case deposits tokens in DAO
+         * - User1 deposits 50 tokens
+         * - Balance of user1 should be decreased by 50 tokens
+         * - Balance of DAO should be increased by 50 tokens
+         * - tokenDeposited mapping should be updated by 50 tokens
+         * @param {Promise<void>} func function to be tested
+         */
+        it("should deposit tokens in DAO", async function () {
+            const { daoContract } = await loadFixture(DeployDAOFixture)
+            const [user1] = await ethers.getSigners();
+            const gtContract = await ethers.getContractFactory("GovernanceToken");
+            const gt = gtContract.attach(await daoContract.governanceTokenAddress());
+
+            // Before deposit
+            const initialUserBalance = await gt.balanceOf(user1.address);
+            const initialDaoBalance = await gt.balanceOf(daoContract.getAddress());
+            const daoDepositsBefore = await daoContract.tokenDeposited(user1.address);
+
+            // Deposit 50 tokens
+            const depositBal = BigInt(50);
+            await gt.connect(user1).approve(daoContract.getAddress(), depositBal);
+            await daoContract.connect(user1).depositTokens(depositBal);
+
+            // After deposit
+            const userBalanceAfter = await gt.balanceOf(user1.address);
+            const daoBalanceAfter = await gt.balanceOf(daoContract.getAddress());
+            const daoDepositsAfter = await daoContract.tokenDeposited(user1.address);
+
+            // Calculations
+            expect(userBalanceAfter).to.equal(initialUserBalance - depositBal);
+            expect(daoBalanceAfter).to.equal(initialDaoBalance + depositBal);
+            expect(daoDepositsAfter).to.equal(daoDepositsBefore + depositBal);
+        })
+
+        /**
+         * @dev This test case should deposit and withdraw tokens from DAO
+         * deposit 100 tokens
+         * withdraw 50 tokens
+         * @param {Promise<void>} func function to be tested
+         */
+
+        it("should deposit and  withdraw tokens from DAO", async function () {
+            const { daoContract } = await loadFixture(DeployDAOFixture)
+            const [user1] = await ethers.getSigners();
+            const gtContract = await ethers.getContractFactory("GovernanceToken");
+            const gt = gtContract.attach(await daoContract.governanceTokenAddress());
+            const depositBal = BigInt(100);
+            const withdrawBal = BigInt(50);
+            const balance = await gt.balanceOf(user1.address);
+
+            // Deposit
+            await gt.connect(user1).approve(daoContract.getAddress(), depositBal);
+            await daoContract.connect(user1).depositTokens(depositBal);
+            // Calculation:
+            // Before deposit: balance = 100
+            // Deposit: 100
+            // After deposit: balance = 100 - 100 = 0
+            // daoDeposits = 100
+            expect(await gt.balanceOf(user1.address)).to.equal(balance - depositBal);
+
+            // Withdraw
+            const daoDeposits = await daoContract.tokenDeposited(user1.address);
+            expect(daoDeposits).to.equal(depositBal);
+            await daoContract.connect(user1).withdrawTokens(withdrawBal);
+
+            // Calculation:
+            // Before withdraw: balance = 0
+            // Withdraw: 50
+            // After withdraw: balance = 50
+            // daoDeposits = 100 - 50 = 50
+            expect(await gt.balanceOf(daoContract.getAddress())).to.equal(depositBal - withdrawBal);
+
+            expect(await daoContract.tokenDeposited(user1.address)).to.equal(daoDeposits - withdrawBal);
+        })
+
 
     });
 });

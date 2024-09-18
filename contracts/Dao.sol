@@ -2,7 +2,7 @@
 pragma solidity ^0.8.21;
 
 import {Proposal} from "./Proposal.sol";
-import "./GovernanceToken.sol";
+import {GovernanceToken, ReentrancyGuard, Ownable} from "./GovernanceToken.sol";
 import "./IDao.sol";
 
 contract DAO is IDAO, ReentrancyGuard {
@@ -21,12 +21,13 @@ contract DAO is IDAO, ReentrancyGuard {
     mapping(uint256 => ProposalInfo) public proposals;
     mapping(address => bool) public blacklisted;
     mapping(address => bool) public isDAOMember;
-
+    mapping(address => uint256) public tokenDeposited;
     error DAOBlacklistedAddress();
     error DAONotADaoMember();
     error DAOInsufficientBalance();
     error DAOInvalidAmount();
     error DepositsMisMatch(uint256 expected, uint256 actual);
+    error DAOInsufficientAllowanceGovernanceToken();
 
     modifier notBlacklisted(address account) {
         require(!blacklisted[account], DAOBlacklistedAddress());
@@ -44,9 +45,6 @@ contract DAO is IDAO, ReentrancyGuard {
         address initialAddress;
         uint8 decimals;
         GovernanceToken.smartContractActions actions;
-    }
-    struct daoMemList {
-        uint32 id;
     }
 
     constructor(
@@ -70,7 +68,7 @@ contract DAO is IDAO, ReentrancyGuard {
         addDAOMembers(_daoMembers);
     }
 
-    function addDAOMembers(DAOMember[] memory members) public{
+    function addDAOMembers(DAOMember[] memory members) public {
         require(_onlyDao(), DAONotADaoMember());
         GovernanceToken _governanceToken = GovernanceToken(
             governanceTokenAddress
@@ -172,6 +170,31 @@ contract DAO is IDAO, ReentrancyGuard {
         );
         treasuryBalance[msg.sender] -= amount;
         payable(msg.sender).transfer(amount);
+    }
+
+    function depositTokens(uint256 _amount) external {
+        GovernanceToken _govToken = GovernanceToken(governanceTokenAddress);
+        uint256 balance = _govToken.balanceOf(msg.sender);
+        uint256 allowance = _govToken.allowance(msg.sender, address(this));
+        require(
+            allowance >= _amount,
+            DAOInsufficientAllowanceGovernanceToken()
+        );
+        if (balance >= _amount) {
+            tokenDeposited[msg.sender] += _amount;
+            _govToken.transferFrom(msg.sender, address(this), _amount);
+        }
+    }
+
+    function withdrawTokens(uint256 _amount) external nonReentrant {
+        require(_onlyDao(), DAONotADaoMember());
+        GovernanceToken _govToken = GovernanceToken(governanceTokenAddress);
+        uint256 balance = _govToken.balanceOf(address(this));
+        uint256 depBal = tokenDeposited[msg.sender];
+        if (balance >= depBal && _amount <= balance) {
+            tokenDeposited[msg.sender] -= _amount;
+            _govToken.transfer(msg.sender, _amount);
+        }
     }
 
     function getDAOTreasuryBalance() external view returns (uint256) {

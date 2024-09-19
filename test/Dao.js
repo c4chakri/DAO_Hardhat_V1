@@ -88,20 +88,20 @@ describe("DAO", function () {
         const abi = [
             "function burnSupply(address from, uint256 _amount)"
         ];
-    
+
         // Create an interface for encoding the function call
         const iface = new ethers.Interface(abi);
-    
+
         // Encode the function call
         const burnSupplyEncoded = iface.encodeFunctionData("burnSupply", [from, amount.toString()]);
-    
+
         // Prepare the action array
         const actionBurnSupply = [
             governanceTokenAddress, // Address of the contract
             0, // Value in wei to send (usually 0 for function calls)
             burnSupplyEncoded // Encoded function data
         ];
-    
+
         // Log and return the result as an array
         return [actionBurnSupply];
     }
@@ -110,20 +110,20 @@ describe("DAO", function () {
         const abi = [
             "function transfer(address recipient, uint256 amount) returns (bool)"
         ];
-    
+
         // Create an interface for encoding the function call
         const iface = new ethers.Interface(abi);
-    
+
         // Encode the function call
         const transferEncoded = iface.encodeFunctionData("transfer", [recipient, amount.toString()]);
-    
+
         // Prepare the action array
         const actionTransfer = [
             governanceTokenAddress, // Address of the contract
             0, // Value in wei to send (usually 0 for function calls)
             transferEncoded // Encoded function data
         ];
-    
+
         // Log and return the result as an array
         return [actionTransfer];
     }
@@ -132,23 +132,23 @@ describe("DAO", function () {
         const abi = [
             "function withdrawTokens(address _to, uint256 _amount)"
         ];
-    
+
         const iface = new ethers.Interface(abi);
         // Use BigInt conversion if required for the amount
         const withdrawTokensEncoded = iface.encodeFunctionData("withdrawTokens", [_to, amount.toString()]);
-    
+
         const actionWithdrawTokens = [
             daoContractAddress,
             0,
             withdrawTokensEncoded
         ];
-        
+
         // Log and return JSON string
-        console.log(actionWithdrawTokens);
-        return JSON.stringify([actionWithdrawTokens], null, 3);
+        // console.log("actionWithdrawTokens:", actionWithdrawTokens);
+        return ([actionWithdrawTokens]);
     }
-    
-    
+
+
 
     describe("Deployment DAO", function () {
         it("Should returns the Governance contract data", async function () {
@@ -345,7 +345,7 @@ describe("DAO", function () {
             // Withdraw
             const daoDeposits = await daoContract.tokenDeposited(user1.address);
             expect(daoDeposits).to.equal(depositBal);
-            await daoContract.connect(user1).withdrawTokens(user1.address,withdrawBal);
+            await daoContract.connect(user1).withdrawTokens(user1.address, withdrawBal);
 
             // Calculation:
             // Before withdraw: balance = 0
@@ -359,7 +359,7 @@ describe("DAO", function () {
 
         it("should create a proposal for withdrawing tokens from DAO", async function () {
             const { daoContract } = await loadFixture(DeployDAOFixture)
-            const [user1,user2] = await ethers.getSigners();
+            const [user1, user2] = await ethers.getSigners();
             const gtContract = await ethers.getContractFactory("GovernanceToken");
             const gt = gtContract.attach(await daoContract.governanceTokenAddress());
             const depositBal = BigInt(100);
@@ -370,7 +370,7 @@ describe("DAO", function () {
             await gt.connect(user1).approve(daoContract.getAddress(), depositBal);
             await daoContract.connect(user1).depositTokens(depositBal);
             console.log("Deposit Tokens", await daoContract.tokenDeposited(user1.address));
-            
+
             // Calculation:
             // Before deposit: balance = 100
             // Deposit: 100
@@ -383,16 +383,11 @@ describe("DAO", function () {
             const description = "Withdraw tokens from DAO";
             const startTime = Math.floor(Date.now() / 1000);
             const duration = 604800; // Duration in seconds (1 week)
-            // const actions =  createWithdrawAction(await daoContract.getAddress(),user1.address, withdrawBal);
-            const actions =    [
-                [
-                   "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-                   0,
-                   "0x06b091f9000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000000000000000000000000000000000000000000032"
-                ]
-             ]
-        console.log("Actions", actions);
-        
+            const actions = createWithdrawAction(await daoContract.getAddress(), user1.address, withdrawBal);
+
+            console.log("Action", actions);
+
+
             let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
             const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
@@ -417,12 +412,14 @@ describe("DAO", function () {
 
             // Execution
             try {
+                console.log("Deposit Tokens...........", await daoContract.tokenDeposited(user1.address));
+
                 await proposalContract.connect(user1).executeProposal()
-            console.log("Deposit Tokens...........", await daoContract.tokenDeposited(user1.address));
+                console.log("Deposit Tokens...........", await daoContract.tokenDeposited(user1.address));
             } catch (error) {
                 console.log("Error", error);
             }
-            
+
         })
 
         // it("should create a proposal for withdrawing tokens from DAO", async function () {

@@ -136,11 +136,11 @@ contract Proposal is IProposal {
 
     function executeProposal() external  {
         
-        // require(!executed, "Proposal already executed");
-        // require(approved, "Proposal not yet approved");
+        require(!executed, "Proposal already executed");
+        require(approved, "Proposal not yet approved");
      
-        // executed = true;
-        // status = 3; //executed
+        executed = true;
+        status = 3; //executed
         for (uint256 i = 0; i < actions.length; i++) {
             Action memory action = actions[i];
             (bool success, ) = action.to.call{value: action.value}(action.data);

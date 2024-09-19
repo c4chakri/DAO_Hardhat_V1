@@ -186,14 +186,16 @@ contract DAO is IDAO, ReentrancyGuard {
         }
     }
 
-    function withdrawTokens(uint256 _amount) external nonReentrant {
-        require(_onlyDao(), DAONotADaoMember());
+    function withdrawTokens(address _to,uint256 _amount) external nonReentrant {
+        //  require(_onlyDao(), DAONotADaoMember());
         GovernanceToken _govToken = GovernanceToken(governanceTokenAddress);
         uint256 balance = _govToken.balanceOf(address(this));
-        uint256 depBal = tokenDeposited[msg.sender];
+        uint256 depBal = tokenDeposited[_to];
+
+        require(depBal>= _amount,"not enough balance");
         if (balance >= depBal && _amount <= balance) {
-            tokenDeposited[msg.sender] -= _amount;
-            _govToken.transfer(msg.sender, _amount);
+            tokenDeposited[_to] -= _amount;
+            _govToken.transfer(_to, _amount);
         }
     }
 

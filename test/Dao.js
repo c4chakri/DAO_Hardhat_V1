@@ -226,7 +226,7 @@ describe("DAO", function () {
                  * - It prints the status of the proposal
                  * @param {Promise<void>} func function to be tested
                  */
-        it("should create , vote and execute the proposal ", async function () {
+        it("MINTING PROPOSAL : should create , vote and execute ", async function () {
             const { daoContract } = await loadFixture(DeployDAOFixture);
             const [user1, user2, user3] = await ethers.getSigners();
 
@@ -250,11 +250,13 @@ describe("DAO", function () {
             // Creating proposal
             let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
-
+            
             const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
             await tx.wait();
 
             proposalId = await daoContract.proposalId();
+            console.log("MINTING Proposal created................................");
+
             console.log("Current Proposal Id", proposalId);
 
             const proposals = await daoContract.proposals(proposalId);
@@ -357,7 +359,7 @@ describe("DAO", function () {
             expect(await daoContract.tokenDeposited(user1.address)).to.equal(daoDeposits - withdrawBal);
         })
 
-        it("should create a proposal for withdrawing tokens from DAO", async function () {
+        it("WITHDRAW PROPOSAL: should create a proposal for withdrawing tokens from DAO", async function () {
             const { daoContract } = await loadFixture(DeployDAOFixture)
             const [user1, user2] = await ethers.getSigners();
             const gtContract = await ethers.getContractFactory("GovernanceToken");
@@ -385,13 +387,14 @@ describe("DAO", function () {
             const duration = 604800; // Duration in seconds (1 week)
             const actions = createWithdrawAction(await daoContract.getAddress(), user1.address, withdrawBal);
 
-            console.log("Action", actions);
+            // console.log("Action", actions);
 
 
             let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
             const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
-
+            console.log("WITHDRAWING proposal created...............................");
+            
             proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
 
@@ -412,10 +415,13 @@ describe("DAO", function () {
 
             // Execution
             try {
-                console.log("Deposit Tokens...........", await daoContract.tokenDeposited(user1.address));
-
+                console.log("Before execution of deposit Tokens ...........", await daoContract.tokenDeposited(user1.address));
+                console.log("Execution of withdawing bal......", withdrawBal);
+                
                 await proposalContract.connect(user1).executeProposal()
-                console.log("Deposit Tokens...........", await daoContract.tokenDeposited(user1.address));
+                console.log("Executed :", await proposalContract.executed());
+
+                console.log("After execution of deposit Tokens...........", await daoContract.tokenDeposited(user1.address));
             } catch (error) {
                 console.log("Error", error);
             }

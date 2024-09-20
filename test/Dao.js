@@ -257,7 +257,7 @@ describe("DAO", function () {
             // Creating proposal
             let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
-            
+
             const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
             await tx.wait();
 
@@ -402,7 +402,7 @@ describe("DAO", function () {
             const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
             await tx.wait()
             console.log("WITHDRAWING proposal created...............................");
-            
+
             proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
 
@@ -414,11 +414,11 @@ describe("DAO", function () {
             expect(await proposalContract.creatorAddress()).to.equal(proposals[1]);
 
             // Voting
-            if(proposalContract != undefined || null){
+            if (proposalContract != undefined || null) {
                 await proposalContract.connect(user1).vote(1); // No vote
                 await proposalContract.connect(user2).vote(1); // Yes vote
             }
-            
+
 
             console.log("Yes votes", await proposalContract.yesVotes());
             console.log("No votes", await proposalContract.noVotes());
@@ -428,7 +428,7 @@ describe("DAO", function () {
             try {
                 console.log("Before execution of deposit Tokens ...........", await daoContract.tokenDeposited(user1.address));
                 console.log("Execution of withdawing bal......", withdrawBal);
-                
+
                 await proposalContract.connect(user1).executeProposal()
                 console.log("Executed :", await proposalContract.executed());
 
@@ -445,8 +445,8 @@ describe("DAO", function () {
         // })
 
         it("DAO FACTORY : sholud intract with DAO Factory contract", async function () {
-            const {daoFactoryContract} = await loadFixture(DeployDAOFactoryFixture)
-            const [addr1, addr2] = await ethers.getSigners();
+            const { daoFactoryContract } = await loadFixture(DeployDAOFactoryFixture)
+            const [addr1, addr2, addr3] = await ethers.getSigners();
 
             //Deploying GovernnaceToken 
             const actions = {
@@ -459,14 +459,14 @@ describe("DAO", function () {
             };
 
             const gov1 = await ethers.getContractFactory("GovernanceToken")
-            const govContract1 =await gov1.deploy(
+            const govContract1 = await gov1.deploy(
                 "Gov1",
                 "GT1",
                 addr1.address,
                 10,
                 actions
             )
-            const govContract2 =await gov1.deploy(
+            const govContract2 = await gov1.deploy(
                 "Gov2",
                 "GT2",
                 addr2.address,
@@ -474,8 +474,8 @@ describe("DAO", function () {
                 actions
             )
 
-            console.log("o1",await daoFactoryContract.getAddress());
-            console.log("id 1",await daoFactoryContract.daoId());
+            console.log("o1", await daoFactoryContract.getAddress());
+            console.log("id 1", await daoFactoryContract.daoId());
 
             await daoFactoryContract.connect(addr1).createDAO(
                 "My DAO 1",
@@ -491,7 +491,7 @@ describe("DAO", function () {
                 ],
                 false
             );
-            
+
             await daoFactoryContract.connect(addr2).createDAO(
                 "MY DAO 2",
                 await govContract2.getAddress(),
@@ -506,24 +506,19 @@ describe("DAO", function () {
                 ],
                 false
             );
-            
-            // const daoList = await daoFactoryContract.getAllDaos()
-            // const dao1 = daoList[0][1]
-            // const dao2 = daoList[1][1]
-            
-            // // creating instance of dao contract
-            // const daoInstance = await ethers.getContractFactory("DAO")
-            // const dao1Contract = daoInstance.attach(dao1)
-            // const dao2Contract = daoInstance.attach(dao2)
+
+
 
 
             const daoList = await daoFactoryContract.getAllDaos();
+            const daoInstance = await ethers.getContractFactory("DAO");
+            const gtInstance = await ethers.getContractFactory("GovernanceToken")
+            const proposalInstance = await ethers.getContractFactory("Proposal");
 
             for (let i = 0; i < daoList.length; i++) {
                 const daoAddress = daoList[i][1];
-                const daoInstance = await ethers.getContractFactory("DAO");
                 const daoContract = daoInstance.attach(daoAddress);
-            
+
                 const DaoCreator = await daoContract.DaoCreator();
                 const governanceTokenAddress = await daoContract.governanceTokenAddress();
                 const minimumParticipationPercentage = await daoContract.minimumParticipationPercentage();
@@ -534,7 +529,7 @@ describe("DAO", function () {
                 const isMultiSignDAO = await daoContract.isMultiSignDAO();
                 const proposalId = await daoContract.proposalId();
                 const membersCount = await daoContract.membersCount();
-            
+
                 console.log(`DAO ${i + 1} Contract Details:`, {
                     governanceTokenAddress,
                     DaoCreator,
@@ -548,14 +543,55 @@ describe("DAO", function () {
                     membersCount: membersCount.toString(),
                 });
             }
+
+            //********** CREATING PROPOSALS FOR DAO 1******  */
+
+            const dao1Addr = daoList[0][1]
+            const daoContract1 = daoInstance.attach(dao1Addr);
+            const gtContract1 = gtInstance.attach(await daoContract1.governanceTokenAddress())
             
-           
+            console.log("DAO 1 Proposal Id", await daoContract1.proposalId());
+
+            const title = "Increase Token Supply";
+            const description = "This proposal aims to increase the token supply mint to 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
+            const startTime = Math.floor(Date.now() / 1000);
+            const duration = 604800; // Duration in seconds (1 week)
 
 
+            const MintActions = await createMintAction(await gtContract1.getAddress(), addr3.address, 50)
 
+            // Creating proposal
+            let proposalId = await daoContract1.proposalId();
+            console.log("Current Proposal Id", proposalId);
 
+            const tx = await daoContract1.createProposal(title, description, startTime, duration, MintActions);
+            await tx.wait();
 
+            proposalId = await daoContract1.proposalId();
+            console.log("MINTING Proposal created DAO 1 Proposal 1................................");
 
+            console.log("Current Proposal Id", proposalId);
+
+            const proposals = await daoContract1.proposals(proposalId);
+            console.log("Proposal Address:", proposals[0]);
+
+            const proposalContract = proposalInstance.attach(proposals[0]);
+
+            // Grant roles
+            await gtContract1.grantRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", proposals[0]);
+
+            expect(await proposalContract.creatorAddress()).to.equal(proposals[1]);
+
+            // Voting
+            await proposalContract.connect(addr1).vote(2); // No vote
+            await proposalContract.connect(addr2).vote(1); // Yes vote
+
+            console.log("Yes votes", await proposalContract.yesVotes());
+            console.log("No votes", await proposalContract.noVotes());
+            
+            await proposalContract.connect(addr1).executeProposal();
+            console.log("Executed:", await proposalContract.executed());
+            console.log("Balance of user3", await gtContract1.balanceOf(addr3.address));
         })
     });
 });

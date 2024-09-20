@@ -60,6 +60,13 @@ describe("DAO", function () {
 
         return { daoContract, addr1, addr2, addr3, addr4 };
     }
+
+    async function DeployDAOFactoryFixture() {
+        const [addr1, addr2, addr3, addr4] = await ethers.getSigners();
+        const daoFactory = await ethers.getContractFactory("DAOFactory");
+        const daoFactoryContract = await daoFactory.deploy();
+        return { daoFactoryContract, addr1, addr2, addr3, addr4 };
+    }
     async function createMintAction(governanceTokenAddress, to, amount) {
         // Define the ABI for the mint function
         const abi = [
@@ -393,6 +400,7 @@ describe("DAO", function () {
             let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
             const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
+            await tx.wait()
             console.log("WITHDRAWING proposal created...............................");
             
             proposalId = await daoContract.proposalId();
@@ -406,8 +414,11 @@ describe("DAO", function () {
             expect(await proposalContract.creatorAddress()).to.equal(proposals[1]);
 
             // Voting
-            await proposalContract.connect(user1).vote(1); // No vote
-            await proposalContract.connect(user2).vote(1); // Yes vote
+            if(proposalContract != undefined || null){
+                await proposalContract.connect(user1).vote(1); // No vote
+                await proposalContract.connect(user2).vote(1); // Yes vote
+            }
+            
 
             console.log("Yes votes", await proposalContract.yesVotes());
             console.log("No votes", await proposalContract.noVotes());
@@ -433,5 +444,118 @@ describe("DAO", function () {
         //     console.log("Withdraw Action", withdrawFunAction);
         // })
 
+        it("DAO FACTORY : sholud intract with DAO Factory contract", async function () {
+            const {daoFactoryContract} = await loadFixture(DeployDAOFactoryFixture)
+            const [addr1, addr2] = await ethers.getSigners();
+
+            //Deploying GovernnaceToken 
+            const actions = {
+                canMint: true,
+                canBurn: true,
+                canPause: false,
+                canStake: true,
+                canTransfer: true,
+                canChangeOwner: false,
+            };
+
+            const gov1 = await ethers.getContractFactory("GovernanceToken")
+            const govContract1 =await gov1.deploy(
+                "Gov1",
+                "GT1",
+                addr1.address,
+                10,
+                actions
+            )
+            const govContract2 =await gov1.deploy(
+                "Gov2",
+                "GT2",
+                addr2.address,
+                12,
+                actions
+            )
+
+            console.log("o1",await daoFactoryContract.getAddress());
+            console.log("id 1",await daoFactoryContract.daoId());
+
+            await daoFactoryContract.connect(addr1).createDAO(
+                "My DAO 1",
+                await govContract1.getAddress(),
+                50,
+                40,
+                86400,
+                true,
+                false,
+                [
+                    [await addr1.getAddress(), ethers.parseEther("100")],
+                    [await addr2.getAddress(), ethers.parseEther("200")]
+                ],
+                false
+            );
+            
+            await daoFactoryContract.connect(addr2).createDAO(
+                "MY DAO 2",
+                await govContract2.getAddress(),
+                50,
+                40,
+                86400,
+                true,
+                false,
+                [
+                    [await addr1.getAddress(), ethers.parseEther("100")],
+                    [await addr2.getAddress(), ethers.parseEther("200")]
+                ],
+                false
+            );
+            
+            // const daoList = await daoFactoryContract.getAllDaos()
+            // const dao1 = daoList[0][1]
+            // const dao2 = daoList[1][1]
+            
+            // // creating instance of dao contract
+            // const daoInstance = await ethers.getContractFactory("DAO")
+            // const dao1Contract = daoInstance.attach(dao1)
+            // const dao2Contract = daoInstance.attach(dao2)
+
+
+            const daoList = await daoFactoryContract.getAllDaos();
+
+            for (let i = 0; i < daoList.length; i++) {
+                const daoAddress = daoList[i][1];
+                const daoInstance = await ethers.getContractFactory("DAO");
+                const daoContract = daoInstance.attach(daoAddress);
+            
+                const DaoCreator = await daoContract.DaoCreator();
+                const governanceTokenAddress = await daoContract.governanceTokenAddress();
+                const minimumParticipationPercentage = await daoContract.minimumParticipationPercentage();
+                const supportThresholdPercentage = await daoContract.supportThresholdPercentage();
+                const minimumDuration = await daoContract.minimumDuration();
+                const earlyExecution = await daoContract.earlyExecution();
+                const canVoteChange = await daoContract.canVoteChange();
+                const isMultiSignDAO = await daoContract.isMultiSignDAO();
+                const proposalId = await daoContract.proposalId();
+                const membersCount = await daoContract.membersCount();
+            
+                console.log(`DAO ${i + 1} Contract Details:`, {
+                    governanceTokenAddress,
+                    DaoCreator,
+                    minimumParticipationPercentage: minimumParticipationPercentage.toString(),
+                    supportThresholdPercentage: supportThresholdPercentage.toString(),
+                    minimumDuration: minimumDuration.toString(),
+                    earlyExecution,
+                    canVoteChange,
+                    isMultiSignDAO,
+                    proposalId: proposalId.toString(),
+                    membersCount: membersCount.toString(),
+                });
+            }
+            
+           
+
+
+
+
+
+
+        })
     });
 });

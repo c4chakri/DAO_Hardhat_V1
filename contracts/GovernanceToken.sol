@@ -166,10 +166,6 @@ contract GovernanceToken is
         return super.nonces(owner);
     }
 
-    function votesDemo(address account) public view returns (uint256) {
-        ERC20Votes erc20 = ERC20Votes(address(this));
-        return erc20.getVotes(account);
-    }
 
     function _getVotingUnits(address account)
         internal
@@ -211,4 +207,3 @@ contract GovernanceToken is
     }
 }
 
-// [true,true,true,true,true,true]

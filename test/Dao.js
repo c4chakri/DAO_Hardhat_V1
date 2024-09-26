@@ -142,7 +142,7 @@ describe("DAO", function () {
 
         const iface = new ethers.Interface(abi);
         // Use BigInt conversion if required for the amount
-        const withdrawTokensEncoded = iface.encodeFunctionData("withdrawTokens", [_to, amount.toString()]);
+        const withdrawTokensEncoded = iface.encodeFunctionData("withdrawTokens", [_to, amount]);
 
         const actionWithdrawTokens = [
             daoContractAddress,
@@ -257,8 +257,9 @@ describe("DAO", function () {
             // Creating proposal
             let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
+            const actionId= 0;
 
-            const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
+            const tx = await daoContract.createProposal(title, description, startTime, duration,actionId, actions);
             await tx.wait();
 
             proposalId = await daoContract.proposalId();
@@ -273,7 +274,7 @@ describe("DAO", function () {
             const proposalContract = proposalInstance.attach(proposals[0]);
 
             // Grant roles
-            await gtContract.grantRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", proposals[0]);
+            // await gtContract.grantRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", proposals[0]);
 
             expect(await proposalContract.creatorAddress()).to.equal(proposals[1]);
 
@@ -399,7 +400,7 @@ describe("DAO", function () {
 
             let proposalId = await daoContract.proposalId();
             console.log("Current Proposal Id", proposalId);
-            const tx = await daoContract.createProposal(title, description, startTime, duration, actions);
+            const tx = await daoContract.createProposal(title, description, startTime, duration,1, actions);
             await tx.wait()
             console.log("WITHDRAWING proposal created...............................");
 
@@ -563,8 +564,9 @@ describe("DAO", function () {
             // Creating proposal
             let proposalId = await daoContract1.proposalId();
             console.log("Current Proposal Id", proposalId);
+            const actionId= 0;
 
-            const tx = await daoContract1.createProposal(title, description, startTime, duration, MintActions);
+            const tx = await daoContract1.createProposal(title, description, startTime, duration,actionId, MintActions);
             await tx.wait();
 
             proposalId = await daoContract1.proposalId();
@@ -576,9 +578,14 @@ describe("DAO", function () {
             console.log("Proposal Address:", proposals[0]);
 
             const proposalContract = proposalInstance.attach(proposals[0]);
-
+            
+            // its ok grnating in dao
             // Grant roles
-            await gtContract1.grantRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", proposals[0]);
+            // console.log("propoal,,,s froila",await gtContract1.hasRole("0xb0aafe805b29ea5e57cdf96e1f39c2ff0e6edd978cc45f739c43f08208c90d6e",proposals[0]));
+
+            // console.log("propoal,,,s froila",await gtContract1.hasRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472",proposals[0]));
+            // await gtContract1.grantRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472", proposals[0]);
+            // console.log("propoal,,,s froila",await gtContract1.hasRole("0x262c70cb68844873654dc54487b634cb00850c1e13c785cd0d96a2b89b829472",proposals[0]));
 
             expect(await proposalContract.creatorAddress()).to.equal(proposals[1]);
 

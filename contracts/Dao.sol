@@ -2,8 +2,8 @@
 pragma solidity ^0.8.21;
 
 import {Proposal} from "./Proposal.sol";
-import {GovernanceToken, ReentrancyGuard, Ownable} from "./GovernanceToken.sol";
-import "./IDao.sol";
+import {GovernanceToken, ReentrancyGuard, Ownable,AccessControl} from "./gtDemo.sol";
+import {IDAO} from "./IDao.sol";
 
 contract DAO is IDAO, ReentrancyGuard {
     address public immutable governanceTokenAddress;
@@ -22,21 +22,24 @@ contract DAO is IDAO, ReentrancyGuard {
     mapping(address => bool) public blacklisted;
     mapping(address => bool) public isDAOMember;
     mapping(address => uint256) public tokenDeposited;
+    mapping (address=> bool) public isProposal;
+    bytes32 private constant PROPOSAL_ROLE = keccak256("TOKEN_PROPOSAL");
+    
     error DAOBlacklistedAddress();
     error DAONotADaoMember();
     error DAOInsufficientBalance();
     error DAOInvalidAmount();
     error DepositsMisMatch(uint256 expected, uint256 actual);
     error DAOInsufficientAllowanceGovernanceToken();
-
+    error DAOUnAuthorizedInteraction();
     modifier notBlacklisted(address account) {
-        require(!blacklisted[account], DAOBlacklistedAddress());
+        if (blacklisted[account]) revert DAOBlacklistedAddress();
         _;
     }
 
     modifier canInteractWithDAO(address account) {
         require(isDAOMember[account], DAONotADaoMember());
-        require(!blacklisted[account], DAOBlacklistedAddress());
+        if (blacklisted[account]) revert DAOBlacklistedAddress();
         _;
     }
     struct GovData {
@@ -65,6 +68,7 @@ contract DAO is IDAO, ReentrancyGuard {
         canVoteChange = _canVoteChange;
         isMultiSignDAO = _isMultiSignDAO;
         DaoCreator = msg.sender;
+        setDaoAddressToGovernanceToken();
         addDAOMembers(_daoMembers);
     }
 
@@ -73,20 +77,18 @@ contract DAO is IDAO, ReentrancyGuard {
         GovernanceToken _governanceToken = GovernanceToken(
             governanceTokenAddress
         );
-
         for (uint256 i = 0; i < members.length; i++) {
-            ++membersCount;
             address memberAddress = members[i].memberAddress;
             uint256 deposit = members[i].deposit;
 
-            require(
-                !isDAOMember[memberAddress],
-                "Add DAO Member Function: You already added"
-            );
+            if (!isDAOMember[memberAddress]) {
+                isDAOMember[memberAddress] = true;
+                ++membersCount;
 
-            isDAOMember[memberAddress] = true;
-            _governanceToken.setDAOAddress(address(this));
-            _governanceToken.mintSupply(memberAddress, deposit);
+                if (!isMultiSignDAO) {
+                    _governanceToken.mintSupply(memberAddress, deposit);
+                }
+            }
         }
     }
 
@@ -95,6 +97,7 @@ contract DAO is IDAO, ReentrancyGuard {
         string memory _description,
         uint32 _startTime,
         uint32 _duration,
+        uint8 _actionId,
         Proposal.Action[] memory _actions
     ) public canInteractWithDAO(msg.sender) returns (address) {
         ++proposalId;
@@ -118,8 +121,27 @@ contract DAO is IDAO, ReentrancyGuard {
             title: _title,
             id: proposalId
         });
+        isProposal[address(newProposal)] = true;
 
+        if (_actionId <= uint8(ActionType.DaoSetting)) {
+            ActionType action = ActionType(_actionId);
+            if (action == ActionType.Mint) {
+                setProposalRole(address(newProposal));
+            }
+        }
         return proposals[proposalId].deployedProposalAddress;
+    }
+
+    function setProposalRole(address proposalAddress) internal {
+        GovernanceToken governanceToken = GovernanceToken(
+            governanceTokenAddress
+        );
+        governanceToken.setProposalRole(proposalAddress);
+    }
+
+    function setDaoAddressToGovernanceToken() internal {
+        GovernanceToken _govToken = GovernanceToken(governanceTokenAddress);
+        _govToken.setDAOAddress(address(this));
     }
 
     function _onlyDao() private view notBlacklisted(msg.sender) returns (bool) {
@@ -155,7 +177,8 @@ contract DAO is IDAO, ReentrancyGuard {
         if (msg.value != _amount) {
             revert DepositsMisMatch({expected: _amount, actual: msg.value});
         }
-        treasuryBalance[msg.sender] += msg.value;
+        treasuryBalance[msg.sender] -= _amount;
+        payable(msg.sender).transfer(_amount);
     }
 
     function withdrawFromDAOTreasury(uint256 amount)
@@ -182,17 +205,26 @@ contract DAO is IDAO, ReentrancyGuard {
         );
         if (balance >= _amount) {
             tokenDeposited[msg.sender] += _amount;
-            _govToken.transferFrom(msg.sender, address(this), _amount);
+            bool success = _govToken.transferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            );
+            require(success, "Token transfer failed");
         }
     }
 
-    function withdrawTokens(address _to,uint256 _amount) external nonReentrant {
+    function withdrawTokens(address _to, uint256 _amount)
+        external
+        nonReentrant
+    {
+        // require( isProposal[msg.sender],DAOUnAuthorizedInteraction());
         //  require(_onlyDao(), DAONotADaoMember());
         GovernanceToken _govToken = GovernanceToken(governanceTokenAddress);
         uint256 balance = _govToken.balanceOf(address(this));
         uint256 depBal = tokenDeposited[_to];
 
-        require(depBal>= _amount,"not enough balance");
+        require(depBal >= _amount, "not enough balance");
         if (balance >= depBal && _amount <= balance) {
             tokenDeposited[_to] -= _amount;
             _govToken.transfer(_to, _amount);

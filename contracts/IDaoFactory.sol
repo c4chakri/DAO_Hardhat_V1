@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.21;
-import "./GovernanceToken.sol";
+pragma solidity ^0.8.20;
+import "./gtDemo.sol";
 import "./Dao.sol";
 
 interface IDAOFactory {

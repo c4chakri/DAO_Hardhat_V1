@@ -252,7 +252,8 @@ describe("DAO", function () {
 
 
             const actions = await createMintAction(await gtContract.getAddress(), user3.address, 50)
-
+            console.log("Actions", actions);
+            
 
             // Creating proposal
             let proposalId = await daoContract.proposalId();

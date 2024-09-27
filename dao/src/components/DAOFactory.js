@@ -74,16 +74,14 @@ const DAOFactory = () => {
     }
   };
 
-  useEffect(() => {
-    getDAOs(); // Fetch DAOs on component mount
-  }, []);
+  // useEffect(() => {
+  //   getDAOs(); // Fetch DAOs on component mount
+  // }, []);
 
   return (
     <div>
       <h1>DAO Factory</h1>
       <button onClick={loadDao}>Create New DAO</button>
-      <button onClick={getDAOs}>Get DAOs</button>
-      <h2>All DAOs:</h2>
       <ul>
         {daoList.map((dao, index) => (
           <li key={index}>{dao}</li>

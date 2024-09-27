@@ -17,7 +17,7 @@ function App() {
       {userAddress && (
         <>
           <DAOFactory userAddress={userAddress} />
-          <GovernanceToken userAddress={userAddress} tokenAddress="0xB92EF69165B3b379262872098e678A8515b315b5" />
+          {/* <GovernanceToken userAddress={userAddress} tokenAddress="0xB92EF69165B3b379262872098e678A8515b315b5" /> */}
         </>
       )}
     </div>

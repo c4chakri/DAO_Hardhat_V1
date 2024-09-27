@@ -2,39 +2,71 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { DAO_FACTORY_ADDRESS, DAO_FACTORY_ABI, DAO_ABI } from '../constants';
-import { getProvider, getSigner } from '../utils/web3Provider';
 import DAOCard from './DAOCard'; // Import DAOCard component
 
 const DAOFactory = () => {
+  const [daoName, setDaoName] = useState('');
   const [daoList, setDaoList] = useState([]);
-  const [newDaoAddress, setNewDaoAddress] = useState(null); // Store the new DAO address
+  const [newDaoAddress, setNewDaoAddress] = useState(null);
+  // Handle form input change
+  const handleInputChange = (e) => {
+    setDaoName(e.target.value);
+  };
+  useEffect(() => {
+    fetchAllDaos(); // Fetch DAOs on component mount
+  }, []);
 
-  const getDAOs = async () => {
+  // Get provider and signer
+  const getProviderAndSigner = async () => {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    return { provider, signer };
+  };
+
+  // Get a DAO by ID
+  const getDao = async (daoId, daoFactoryContract) => {
     try {
-      const provider = getProvider();
-      const daoFactoryContract = new ethers.Contract(DAO_FACTORY_ADDRESS, DAO_FACTORY_ABI, provider);
-      
-      // Fetch all DAOs using getAllDaos()
-      const daos = await daoFactoryContract.getAllDaos();
-      console.log("DAOs:", daos);
-      setDaoList(daos); // Update the DAO list state
+      const dao = await daoFactoryContract.daos(daoId);
+      return dao;
     } catch (error) {
-      console.error("Error fetching DAOs:", error);
+      console.error(`Error fetching DAO with ID ${daoId}:`, error);
     }
   };
 
-  const createDAO = async () => {
+  // Fetch all DAOs
+  const fetchAllDaos = async () => {
     try {
+      const { signer } = await getProviderAndSigner();
+      const daoFactoryContract = new ethers.Contract(DAO_FACTORY_ADDRESS, DAO_FACTORY_ABI, signer);
+
+      const daoCount = await daoFactoryContract.daoId(); // Get total DAO count
+      console.log("DAO count:", daoCount);
+
+      const daos = [];
+      for (let i = 1; i <= daoCount; i++) {
+        const dao = await getDao(i, daoFactoryContract);
+        console.log("one dao", dao);
+
+        daos.push(dao);
+      }
+      setDaoList(daos);
+    } catch (error) {
+      console.error("Error fetching all DAOs:", error);
+    }
+  };
+
+  // Create a new DAO
+  const createDAO = async (name) => {
+    try {
+      const { signer } = await getProviderAndSigner();
+      const daoFactoryContract = new ethers.Contract(DAO_FACTORY_ADDRESS, DAO_FACTORY_ABI, signer);
+
       // Ensure the user is connected to MetaMask
       const [selectedAddress] = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-  
-      const daoFactoryContract = new ethers.Contract(DAO_FACTORY_ADDRESS, DAO_FACTORY_ABI, signer);
-  
+
+      // Call createDAO function with the name from the form
       const tx = await daoFactoryContract.createDAO(
-        "My New DAO",
+        name, // DAO name from the form
         "0xB92EF69165B3b379262872098e678A8515b315b5", // Replace with actual GovernanceToken address
         50, // Minimum Participation Percentage
         40, // Support Threshold
@@ -44,29 +76,34 @@ const DAOFactory = () => {
         [[selectedAddress, ethers.parseEther("100")]], // Initial members
         false // Multi-signature DAO
       );
-  
+
       // Wait for the transaction to be mined
       const receipt = await tx.wait();
-      const rawaddress = receipt.logs[0].topics[2];
-      const address = "0x" + rawaddress.slice(-40);
-      console.log("DAO Created at address:", address);
-      setNewDaoAddress(address); // Store the new DAO address
-      return address;
+      console.log("DAO created:", receipt);
+
+      const rawAddress = receipt.logs[0].topics[2];
+      const daoAddress = "0x" + rawAddress.slice(-40);
+
+      console.log("DAO Created at address:", daoAddress);
+      setNewDaoAddress(daoAddress); // Store the new DAO address
+      return daoAddress;
     } catch (error) {
       console.error("Error creating DAO:", error);
     }
   };
 
-  const loadDao = async () => {
+  // Load the newly created DAO
+  const loadDao = async (e) => {
+    e.preventDefault();
     try {
-      const daoAddr = await createDAO(); // Call createDAO to create a new DAO
-      if (daoAddr) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const daoContract = new ethers.Contract(daoAddr, DAO_ABI, signer);
+      const daoAddress = await await createDAO(daoName);; // Create a new DAO
+      if (daoAddress) {
+        const { signer } = await getProviderAndSigner();
+        const daoContract = new ethers.Contract(daoAddress, DAO_ABI, signer);
+
         const governanceTokenAddress = await daoContract.governanceTokenAddress();
         console.log("Governance Token Address:", governanceTokenAddress);
-        
+
         // Optionally, fetch and log other DAO details here
       }
     } catch (error) {
@@ -74,22 +111,31 @@ const DAOFactory = () => {
     }
   };
 
-  // useEffect(() => {
-  //   getDAOs(); // Fetch DAOs on component mount
-  // }, []);
-
   return (
     <div>
       <h1>DAO Factory</h1>
-      <button onClick={loadDao}>Create New DAO</button>
-      <ul>
-        {daoList.map((dao, index) => (
-          <li key={index}>{dao}</li>
+      <form onSubmit={loadDao}>
+        <label>
+          Name:
+          <input type="text" value={daoName} onChange={handleInputChange} placeholder='DAO Name' />
+        </label>
+        <input type="submit" value="Submit" />
+      </form>
+
+      {/* <button onClick={loadDao}>Create New DAO</button> */}
+
+      <div className="dao-list">
+        {daoList.slice().reverse().map((dao, index) => (
+          <DAOCard
+            key={index}
+            daoName={dao[0]} // Assuming dao[0] is the DAO name
+            daoAddress={dao[1]} // Assuming dao[1] is the DAO address
+          />
         ))}
-      </ul>
+      </div>
 
       {newDaoAddress && (
-        <DAOCard daoAddr={newDaoAddress} DAO_ABI={DAO_ABI} /> // Render the DAOCard with new DAO address
+        <DAOCard daoName="My New DAO" daoAddress={newDaoAddress} /> // Render DAOCard with the new DAO address
       )}
     </div>
   );

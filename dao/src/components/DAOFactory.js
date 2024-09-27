@@ -119,7 +119,7 @@ const DAOFactory = () => {
           Name:
           <input type="text" value={daoName} onChange={handleInputChange} placeholder='DAO Name' />
         </label>
-        <input type="submit" value="Submit" />
+        <input type="submit" value="create Dao" />
       </form>
 
       {/* <button onClick={loadDao}>Create New DAO</button> */}

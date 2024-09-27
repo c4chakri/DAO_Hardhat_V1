@@ -2,28 +2,26 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { DAO_FACTORY_ADDRESS, DAO_FACTORY_ABI, DAO_ABI } from '../constants';
-import DAOCard from './DAOCard'; // Import DAOCard component
+import DAOCard from './DAOCard';
 
 const DAOFactory = () => {
   const [daoName, setDaoName] = useState('');
   const [daoList, setDaoList] = useState([]);
   const [newDaoAddress, setNewDaoAddress] = useState(null);
-  // Handle form input change
   const handleInputChange = (e) => {
     setDaoName(e.target.value);
   };
   useEffect(() => {
-    fetchAllDaos(); // Fetch DAOs on component mount
+    fetchAllDaos();
   }, []);
 
-  // Get provider and signer
+  
   const getProviderAndSigner = async () => {
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
     return { provider, signer };
   };
 
-  // Get a DAO by ID
   const getDao = async (daoId, daoFactoryContract) => {
     try {
       const dao = await daoFactoryContract.daos(daoId);
@@ -33,7 +31,6 @@ const DAOFactory = () => {
     }
   };
 
-  // Fetch all DAOs
   const fetchAllDaos = async () => {
     try {
       const { signer } = await getProviderAndSigner();
@@ -55,7 +52,6 @@ const DAOFactory = () => {
     }
   };
 
-  // Create a new DAO
   const createDAO = async (name) => {
     try {
       const { signer } = await getProviderAndSigner();
@@ -92,11 +88,11 @@ const DAOFactory = () => {
     }
   };
 
-  // Load the newly created DAO
   const loadDao = async (e) => {
     e.preventDefault();
     try {
-      const daoAddress = await await createDAO(daoName);; // Create a new DAO
+      const daoAddress = await await createDAO(daoName);
+      setDaoName('');
       if (daoAddress) {
         const { signer } = await getProviderAndSigner();
         const daoContract = new ethers.Contract(daoAddress, DAO_ABI, signer);
@@ -104,7 +100,6 @@ const DAOFactory = () => {
         const governanceTokenAddress = await daoContract.governanceTokenAddress();
         console.log("Governance Token Address:", governanceTokenAddress);
 
-        // Optionally, fetch and log other DAO details here
       }
     } catch (error) {
       console.error("Error loading DAO:", error);
@@ -128,14 +123,14 @@ const DAOFactory = () => {
         {daoList.slice().reverse().map((dao, index) => (
           <DAOCard
             key={index}
-            daoName={dao[0]} // Assuming dao[0] is the DAO name
-            daoAddress={dao[1]} // Assuming dao[1] is the DAO address
+            daoName={dao[0]}
+            daoAddress={dao[1]} 
           />
         ))}
       </div>
 
       {newDaoAddress && (
-        <DAOCard daoName="My New DAO" daoAddress={newDaoAddress} /> // Render DAOCard with the new DAO address
+        <DAOCard daoName="My New DAO" daoAddress={newDaoAddress} /> 
       )}
     </div>
   );

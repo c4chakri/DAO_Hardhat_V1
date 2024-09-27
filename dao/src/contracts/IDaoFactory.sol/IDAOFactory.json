@@ -1,0 +1,164 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IDAOFactory",
+  "sourceName": "contracts/IDaoFactory.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "daoName",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "governanceTokenAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "minimumParticipationPercentage",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint8",
+          "name": "supportThresholdPercentage",
+          "type": "uint8"
+        },
+        {
+          "internalType": "uint32",
+          "name": "minimumDuration",
+          "type": "uint32"
+        },
+        {
+          "internalType": "bool",
+          "name": "earlyExecution",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "canVoteChange",
+          "type": "bool"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "memberAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deposit",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IDAO.DAOMember[]",
+          "name": "_daoMembers",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "bool",
+          "name": "isMultiSignDAO",
+          "type": "bool"
+        }
+      ],
+      "name": "createDAO",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "daoId",
+      "outputs": [
+        {
+          "internalType": "uint32",
+          "name": "",
+          "type": "uint32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "id",
+          "type": "uint32"
+        }
+      ],
+      "name": "daos",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "daoAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "daoCreator",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "governanceAddress",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAllDaos",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "internalType": "address",
+              "name": "daoAddress",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "daoCreator",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "governanceAddress",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct IDAOFactory.DAOInfo[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

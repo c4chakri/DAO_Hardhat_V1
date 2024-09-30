@@ -445,7 +445,12 @@ describe("DAO", function () {
         //     const withdrawFunAction = await createWithdrawAction("0x93f9b62443Ae731f817CA262f79921497dDA525E", BigInt(50));
         //     console.log("Withdraw Action", withdrawFunAction);
         // })
-
+        
+        /**
+         * @dev This test case should test the interaction of DAOFactory contract
+         * with the DAO contract. It should create a new DAO using the DAOFactory
+         * contract and then test the functionality of the new DAO contract.
+         */
         it("DAO FACTORY : sholud intract with DAO Factory contract", async function () {
             const { daoFactoryContract } = await loadFixture(DeployDAOFactoryFixture)
             const [addr1, addr2, addr3] = await ethers.getSigners();

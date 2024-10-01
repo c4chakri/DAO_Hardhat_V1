@@ -514,9 +514,6 @@ describe("DAO", function () {
                 false
             );
 
-
-
-
             const daoList = await daoFactoryContract.getAllDaos();
             const daoInstance = await ethers.getContractFactory("DAO");
             const gtInstance = await ethers.getContractFactory("GovernanceToken")

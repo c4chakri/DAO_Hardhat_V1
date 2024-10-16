@@ -252,7 +252,8 @@ describe("DAO", function () {
 
 
             const actions = await createMintAction(await gtContract.getAddress(), user3.address, 50)
-
+            console.log("Actions", actions);
+            
 
             // Creating proposal
             let proposalId = await daoContract.proposalId();
@@ -444,7 +445,12 @@ describe("DAO", function () {
         //     const withdrawFunAction = await createWithdrawAction("0x93f9b62443Ae731f817CA262f79921497dDA525E", BigInt(50));
         //     console.log("Withdraw Action", withdrawFunAction);
         // })
-
+        
+        /**
+         * @dev This test case should test the interaction of DAOFactory contract
+         * with the DAO contract. It should create a new DAO using the DAOFactory
+         * contract and then test the functionality of the new DAO contract.
+         */
         it("DAO FACTORY : sholud intract with DAO Factory contract", async function () {
             const { daoFactoryContract } = await loadFixture(DeployDAOFactoryFixture)
             const [addr1, addr2, addr3] = await ethers.getSigners();
@@ -508,9 +514,6 @@ describe("DAO", function () {
                 false
             );
 
-
-
-
             const daoList = await daoFactoryContract.getAllDaos();
             const daoInstance = await ethers.getContractFactory("DAO");
             const gtInstance = await ethers.getContractFactory("GovernanceToken")
@@ -562,20 +565,25 @@ describe("DAO", function () {
             const MintActions = await createMintAction(await gtContract1.getAddress(), addr3.address, 50)
 
             // Creating proposal
-            let proposalId = await daoContract1.proposalId();
+            let proposalId = await daoContract1.proposalId();//0
             console.log("Current Proposal Id", proposalId);
             const actionId= 0;
 
             const tx = await daoContract1.createProposal(title, description, startTime, duration,actionId, MintActions);
-            await tx.wait();
+            receipt = await tx.wait();
+            // console.log("receipt", receipt);
+            
+            // console.log("propTx", tx);
+            
 
             proposalId = await daoContract1.proposalId();
             console.log("MINTING Proposal created DAO 1 Proposal 1................................");
 
-            console.log("Current Proposal Id", proposalId);
+            console.log("Current Proposal Id", proposalId);//1
 
             const proposals = await daoContract1.proposals(proposalId);
-            console.log("Proposal Address:", proposals[0]);
+            console.log("Proposal Address at......:", proposals[0]);
+
 
             const proposalContract = proposalInstance.attach(proposals[0]);
             

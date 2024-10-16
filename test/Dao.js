@@ -565,20 +565,25 @@ describe("DAO", function () {
             const MintActions = await createMintAction(await gtContract1.getAddress(), addr3.address, 50)
 
             // Creating proposal
-            let proposalId = await daoContract1.proposalId();
+            let proposalId = await daoContract1.proposalId();//0
             console.log("Current Proposal Id", proposalId);
             const actionId= 0;
 
             const tx = await daoContract1.createProposal(title, description, startTime, duration,actionId, MintActions);
-            await tx.wait();
+            receipt = await tx.wait();
+            // console.log("receipt", receipt);
+            
+            // console.log("propTx", tx);
+            
 
             proposalId = await daoContract1.proposalId();
             console.log("MINTING Proposal created DAO 1 Proposal 1................................");
 
-            console.log("Current Proposal Id", proposalId);
+            console.log("Current Proposal Id", proposalId);//1
 
             const proposals = await daoContract1.proposals(proposalId);
-            console.log("Proposal Address:", proposals[0]);
+            console.log("Proposal Address at......:", proposals[0]);
+
 
             const proposalContract = proposalInstance.attach(proposals[0]);
             

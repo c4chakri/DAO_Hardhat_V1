@@ -21,7 +21,7 @@ interface IDAO {
         DaoSetting // 4
     }
 
-    function getAllProposals() external view returns (ProposalInfo[] memory);
+    // function getAllProposals() external view returns (ProposalInfo[] memory);
     function depositToDAOTreasury(uint256 amount) external payable ;
     function withdrawFromDAOTreasury(uint256 amount) external ;
     
